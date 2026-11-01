@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline — Sales CRM dashboard (demo project)</title>
+<meta name="description" content="Demo CRM dashboard: KPIs, revenue chart, deal pipeline kanban, searchable deals table. Portfolio piece by Vladislav Kukharev.">
+<style>
+:root{--bg:#f5f6fa;--panel:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--brand:#2563eb;--brand-soft:#dbeafe;--ok:#059669;--warn:#d97706;--bad:#dc2626}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.demo-bar{background:#fef3c7;color:#78350f;text-align:center;font-size:12px;font-weight:600;padding:5px}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 28px)}
+aside{background:#0f172a;color:#cbd5e1;padding:20px 14px;display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;gap:10px;align-items:center;color:#fff;font-weight:700;font-size:17px;padding:4px 10px 20px}
+.nav{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:8px;cursor:pointer;border:0;background:none;text-align:left;width:100%}
+.nav:hover{background:#1e293b}
+.nav.on{background:#1e293b;color:#fff}
+.nav svg{flex:none}
+aside .foot{margin-top:auto;font-size:12px;color:#64748b;padding:10px}
+main{padding:24px 28px;overflow:hidden}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.top h1{font-size:22px}
+.top small{color:var(--muted)}
+.tools{display:flex;gap:10px;align-items:center}
+.search{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:260px}
+.search input{border:0;outline:0;width:100%;background:none}
+select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn:hover{background:#1d4ed8}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+.kpi small{color:var(--muted);font-weight:500}
+.kpi .v{font-size:26px;font-weight:700;margin:4px 0 2px;letter-spacing:-.01em}
+.delta{font-size:12px;font-weight:600}
+.up{color:var(--ok)}.down{color:var(--bad)}
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.card h2{font-size:15px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.card h2 small{color:var(--muted);font-weight:400}
+#rev{width:100%;height:220px;display:block}
+.tip{position:fixed;pointer-events:none;background:#111827;color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;opacity:0;transition:opacity .1s;z-index:50}
+.src{display:grid;gap:12px}
+.src .l{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.bar{height:8px;border-radius:8px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:8px;width:0;transition:width 1s ease}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.col{background:#f1f3f8;border-radius:10px;padding:10px;min-height:180px}
+.col.over{outline:2px dashed var(--brand);outline-offset:-2px}
+.col h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between;margin:2px 4px 10px}
+.deal{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:grab;transition:box-shadow .15s}
+.deal:hover{box-shadow:0 4px 12px -4px rgba(0,0,0,.15)}
+.deal.drag{opacity:.4}
+.deal b{display:block;font-size:13px}
+.deal span{color:var(--muted);font-size:12px}
+.deal .amt{float:right;font-weight:700;font-size:13px;color:var(--ink)}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;color:var(--muted);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--ink)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:hover td{background:#fafbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
+.b-Lead{background:#eef2ff;color:#4338ca}.b-Qualified{background:#e0f2fe;color:#0369a1}.b-Proposal{background:#fef3c7;color:#92400e}.b-Won{background:#d1fae5;color:#065f46}
+.av{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:11px;margin-right:8px}
+.tbl-wrap{overflow-x:auto}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--muted)}
+.pager button{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+@media (max-width:1000px){.kpis{grid-template-columns:1fr 1fr}.row2{grid-template-columns:1fr}.board{grid-template-columns:1fr 1fr}}
+@media (max-width:720px){.app{grid-template-columns:1fr}aside{display:none}main{padding:16px}.search{width:100%}.tools{width:100%;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="demo-bar">Demo project — fictional company and generated data. Built by Vladislav Kukharev.</div>
+<div class="app">
+ <aside>
+  <div class="brand"><svg width="26" height="26" viewBox="0 0 26 26"><rect width="26" height="26" rx="7" fill="#2563eb"/><path d="M7 17V9h5a3 3 0 0 1 0 6H7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>Pipeline</div>
+  <button class="nav on"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
+  <button class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>Deals</button>
+  <button class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 1 0 0-6M22 21c0-3-2-5-5-5"/></svg>Contacts</button>
+  <button class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15V9M13 15V6M18 15v-4"/></svg>Reports</button>
+  <button class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 13.7H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10.3 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+  <div class="foot">Vanilla JS · no framework · &lt; 30 KB</div>
+ </aside>
+ <main>
+  <div class="top">
+   <div><h1>Sales overview</h1><small id="today"></small></div>
+   <div class="tools">
+    <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Search deals, companies…"></label>
+    <select id="owner"><option value="">All owners</option></select>
+    <button class="btn" id="add">+ New deal</button>
+   </div>
+  </div>
+  <div class="kpis">
+   <div class="card kpi"><small>Revenue (won, 12 mo)</small><div class="v" id="kRev">—</div><span class="delta up">▲ 18.2% vs prev.</span></div>
+   <div class="card kpi"><small>Open pipeline</small><div class="v" id="kPipe">—</div><span class="delta up">▲ 6.4%</span></div>
+   <div class="card kpi"><small>Win rate</small><div class="v" id="kWin">—</div><span class="delta down">▼ 1.1 pp</span></div>
+   <div class="card kpi"><small>Avg. deal size</small><div class="v" id="kAvg">—</div><span class="delta up">▲ 4.0%</span></div>
+  </div>
+  <div class="row2">
+   <div class="card"><h2>Monthly revenue <small>hover for details</small></h2><svg id="rev" viewBox="0 0 700 220" preserveAspectRatio="none"></svg></div>
+   <div class="card"><h2>Lead sources</h2><div class="src" id="src"></div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px"><h2>Pipeline <small>drag cards between stages</small></h2><div class="board" id="board"></div></div>
+  <div class="card"><h2>All deals <small id="cnt"></small></h2>
+   <div class="tbl-wrap"><table><thead><tr><th data-k="company">Company ↕</th><th data-k="contact">Contact ↕</th><th data-k="stage">Stage ↕</th><th data-k="amount">Amount ↕</th><th data-k="owner">Owner ↕</th><th data-k="date">Close date ↕</th></tr></thead><tbody id="rows"></tbody></table></div>
+   <div class="pager"><span id="pinfo"></span><div><button id="prev">← Prev</button> <button id="nextp">Next →</button></div></div>
+  </div>
+ </main>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const $=id=>document.getElementById(id);
+// seeded RNG -> identical demo data on every load
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;const pick=a=>a[Math.floor(rnd()*a.length)];
+const CO=['Northwind Labs','Bluepeak','Kestrel Foods','Orbit Freight','Maple & Co','Vantage Health','Brightline','Copperleaf','Atlas Studio','Fernway','Harbor Tech','Lumen Dental','Quarry Works','Riverstone','Solace Spa','Tidewater','Upland Farms','Westgate Legal','Zephyr Motors','Granite Pay'];
+const FN=['Anna','Ben','Clara','David','Ella','Finn','Grace','Henry','Iris','Jack','Kate','Leo','Mila','Noah','Olivia','Paul'];
+const LN=['Schmidt','Miller','Novak','Weber','Fischer','Brown','Klein','Wagner','Hoffmann','Becker'];
+const OWN=['Sara K.','Tom R.','Nina L.'];const ST=['Lead','Qualified','Proposal','Won'];
+const SRC=[['Website',38],['Referrals',24],['LinkedIn',18],['Events',12],['Cold outreach',8]];
+let deals=Array.from({length:64},(_,i)=>{const d=new Date();d.setDate(d.getDate()+Math.floor(rnd()*90)-30);return{id:i,company:pick(CO),contact:pick(FN)+' '+pick(LN),stage:ST[Math.min(3,Math.floor(rnd()*4.4))],amount:Math.round((2+rnd()*48))*500,owner:pick(OWN),date:d.toISOString().slice(0,10)}});
+const months=['Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'];
+const revenue=months.map((m,i)=>Math.round(42000+i*3100+Math.sin(i*1.3)*7000+rnd()*5000));
+const eur=v=>'€'+v.toLocaleString('en');
+$('today').textContent=new Date().toLocaleDateString('en',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+OWN.forEach(o=>$('owner').insertAdjacentHTML('beforeend',`<option>${o}</option>`));
+let sortK='date',sortDir=1,page=0;const PER=8;
+function filtered(){const q=$('q').value.toLowerCase(),o=$('owner').value;return deals.filter(d=>(!o||d.owner===o)&&(!q||(d.company+d.contact).toLowerCase().includes(q)))}
+function kpis(){const f=filtered(),won=f.filter(d=>d.stage==='Won'),open=f.filter(d=>d.stage!=='Won');
+ const sum=a=>a.reduce((s,d)=>s+d.amount,0);
+ $('kRev').textContent=eur(revenue.reduce((a,b)=>a+b,0));$('kPipe').textContent=eur(sum(open));
+ $('kWin').textContent=f.length?(won.length/f.length*100).toFixed(1)+'%':'—';$('kAvg').textContent=won.length?eur(Math.round(sum(won)/won.length)):'—'}
+function chart(){const svg=$('rev'),W=700,H=220,P=28,max=Math.max(...revenue)*1.15,bw=(W-P)/revenue.length;
+ let h='';for(let i=0;i<=4;i++){const y=H-P-(H-P-10)*i/4;h+=`<line x1="${P}" x2="${W}" y1="${y}" y2="${y}" stroke="#eef0f4"/><text x="0" y="${y+4}" font-size="10" fill="#9ca3af">${Math.round(max*i/4/1000)}k</text>`}
+ revenue.forEach((v,i)=>{const bh=(H-P-10)*v/max,x=P+i*bw+bw*.18,y=H-P-bh;h+=`<rect class="b" data-i="${i}" x="${x}" y="${H-P}" width="${bw*.64}" height="0" rx="4" fill="${i===revenue.length-1?'#2563eb':'#93c5fd'}"><animate attributeName="y" to="${y}" dur=".7s" begin="${i*.04}s" fill="freeze"/><animate attributeName="height" to="${bh}" dur=".7s" begin="${i*.04}s" fill="freeze"/></rect><text x="${x+bw*.32}" y="${H-8}" font-size="10" text-anchor="middle" fill="#9ca3af">${months[i]}</text>`});
+ svg.innerHTML=h;
+ svg.onmousemove=e=>{const r=e.target.closest('.b');if(!r){tip.style.opacity=0;return}const i=+r.dataset.i;tip.textContent=`${months[i]}: ${eur(revenue[i])}`;tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY-30+'px';tip.style.opacity=1};
+ svg.onmouseleave=()=>tip.style.opacity=0}
+function sources(){$('src').innerHTML=SRC.map(([n,v])=>`<div><div class="l"><span>${n}</span><b>${v}%</b></div><div class="bar"><i data-w="${v*2.4}"></i></div></div>`).join('');requestAnimationFrame(()=>document.querySelectorAll('.bar i').forEach(b=>b.style.width=Math.min(100,b.dataset.w)+'%'))}
+function board(){const f=filtered();$('board').innerHTML=ST.map(s=>{const ds=f.filter(d=>d.stage===s);return`<div class="col" data-s="${s}"><h3><span>${s}</span><span>${eur(ds.reduce((a,d)=>a+d.amount,0))}</span></h3>${ds.slice(0,4).map(d=>`<div class="deal" draggable="true" data-id="${d.id}"><span class="amt">${eur(d.amount)}</span><b>${d.company}</b><span>${d.contact} · ${d.owner}</span></div>`).join('')}${ds.length>4?`<span style="color:var(--muted);font-size:12px;margin-left:4px">+${ds.length-4} more</span>`:''}</div>`}).join('')}
+let dragId=null;
+$('board').addEventListener('dragstart',e=>{const c=e.target.closest('.deal');if(c){dragId=+c.dataset.id;c.classList.add('drag')}});
+$('board').addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c){e.preventDefault();document.querySelectorAll('.col').forEach(x=>x.classList.toggle('over',x===c))}});
+$('board').addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&dragId!=null){deals.find(d=>d.id===dragId).stage=c.dataset.s;dragId=null;all()}});
+$('board').addEventListener('dragend',()=>document.querySelectorAll('.col,.deal').forEach(x=>x.classList.remove('over','drag')));
+function table(){const f=filtered().sort((a,b)=>(a[sortK]>b[sortK]?1:a[sortK]<b[sortK]?-1:0)*sortDir);
+ const pages=Math.max(1,Math.ceil(f.length/PER));page=Math.min(page,pages-1);
+ const rows=f.slice(page*PER,page*PER+PER);
+ $('rows').innerHTML=rows.length?rows.map(d=>`<tr><td><b>${d.company}</b></td><td><span class="av">${d.contact.split(' ').map(w=>w[0]).join('')}</span>${d.contact}</td><td><span class="badge b-${d.stage}">${d.stage}</span></td><td>${eur(d.amount)}</td><td>${d.owner}</td><td>${new Date(d.date).toLocaleDateString('en',{day:'numeric',month:'short'})}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">No deals match your filters.</td></tr>';
+ $('cnt').textContent=f.length+' deals';$('pinfo').textContent=`Page ${page+1} of ${pages}`;$('prev').disabled=page===0;$('nextp').disabled=page>=pages-1}
+document.querySelector('thead').onclick=e=>{const k=e.target.dataset.k;if(!k)return;sortDir=sortK===k?-sortDir:1;sortK=k;table()};
+$('prev').onclick=()=>{page--;table()};$('nextp').onclick=()=>{page++;table()};
+$('q').oninput=()=>{page=0;all()};$('owner').onchange=()=>{page=0;all()};
+$('add').onclick=()=>{const d=new Date();d.setDate(d.getDate()+30);deals.unshift({id:deals.length,company:pick(CO),contact:pick(FN)+' '+pick(LN),stage:'Lead',amount:Math.round(2+rnd()*30)*500,owner:pick(OWN),date:d.toISOString().slice(0,10)});all()};
+function all(){kpis();board();table()}
+chart();sources();all();
+</script>
+</body>
+</html>
